@@ -7,17 +7,17 @@ It's free: no accounts, no API keys, no credits.
 ## Install: paste this into Claude Code
 
 ```
-Install the video-to-skill tool from https://github.com/arpbusiness7-coder/video-to-skill. Clone it into ~/Projects/video-to-skill, copy its skill file (.claude/skills/video-to-skill/SKILL.md) into ~/.claude/skills/video-to-skill/ so it works in every project, then run its setup check.
+Install the video-to-skill tool from https://github.com/arpbusiness7-coder/video-to-skill. Download it into ~/Projects/video-to-skill, copy its skill file (.claude/skills/video-to-skill/SKILL.md) into ~/.claude/skills/video-to-skill/ so it works in every project, run its setup, then tell me in plain words what it does and how to use it.
 ```
 
-Claude downloads it, adds the skill so it works in any project, and walks you through the one-time setup. Prefer to do it by hand? See "Get started" below.
+Claude downloads it, adds the skill so it works in any project, installs everything it needs (no Homebrew, no Terminal, no admin password), then explains what it does and what to type. Prefer to do it by hand? See "Get started" below.
 
 | Job | Tool | Cost |
 |---|---|---|
 | Download YouTube and Instagram videos | yt-dlp | free |
 | Instagram photo posts and carousels | gallery-dl | free |
 | Speech to text | Whisper, running on your computer | free |
-| Screenshots and contact sheets | ffmpeg | free |
+| Screenshots and contact sheets | ffmpeg (a ready-made copy comes with setup) | free |
 | Reading the screenshots and writing the summary | Claude | part of your Claude plan |
 
 ## Get started
@@ -30,7 +30,7 @@ Put the `video-to-skill` folder somewhere easy to find, like a `Projects` folder
    - in the Claude desktop app, go to the **Code** tab → **Project folder** → choose `video-to-skill`, or
    - in Terminal: `cd ~/Projects/video-to-skill` then `claude`
 2. The first time, Claude Code asks whether you trust this folder. Say yes, which lets the tool run without asking at every step.
-3. Type **set up**. Claude checks your Mac and installs the free tools. It asks before installing anything. If you don't have them yet, it walks you through ffmpeg and Node.js with Homebrew (one paste each). This is a one-time setup of about 5 minutes and roughly 900 MB.
+3. Type **set up**. Claude asks once, then installs everything the tool needs into one private folder: its own Python, ffmpeg and the rest. You don't need Homebrew, Terminal or your admin password. It's a one-time setup of a few minutes and about 1 GB.
 4. Paste a link. That's it.
 
 Nothing to configure: the skill, its instructions and its permissions are already in the folder (`.claude/` and `CLAUDE.md`).
@@ -74,11 +74,11 @@ Claude does this for you. If you'd rather:
 
 ```
 python3 scripts/setup.py            # what's missing
-python3 scripts/setup.py --install  # yt-dlp, gallery-dl and Whisper, into ~/.video-to-skill-venv
+python3 scripts/setup.py --install  # everything, into ~/.video-to-skill-venv
 python3 scripts/setup.py --prefetch # download the speech-to-text model now
 ```
 
-ffmpeg and Node.js come from your system (`brew install ffmpeg node` on a Mac). In the desktop app chat they're already there.
+`--install` uses uv (a free Python installer) to fetch its own current Python, then adds yt-dlp, gallery-dl, Whisper, a ready-made ffmpeg and Deno. It works on older Macs too, because it doesn't rely on the Python that comes with macOS or on Homebrew. Running it again later updates yt-dlp, which is the fix if YouTube or Instagram downloads start failing.
 
 ## Limits
 
