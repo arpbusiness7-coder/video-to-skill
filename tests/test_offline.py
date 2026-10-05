@@ -414,6 +414,30 @@ class CaptureFlow(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             fetch.fetch_instagram("https://www.instagram.com/p/PHOTO2/", self.tmp, {})
 
+    def test_instagram_author_is_the_username_not_the_number(self):
+        fetch = self.mods["fetch"]
+        fetch._wait_for_gap = lambda config: None
+        # What yt-dlp really returns for a reel: numeric id, username in "channel".
+        fetch._ytdlp_info = lambda url, cookies=None: ({
+            "id": "DPxyz", "uploader_id": "62609148119", "channel": "bymiilan",
+            "uploader": "Milan", "description": "3 hooks that work\nmore text", "timestamp": 1759000000,
+        }, "")
+
+        def fake_download(args, cookies=None):
+            out = Path(args[args.index("-o") + 1].replace("%(ext)s", "mp4"))
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_bytes(b"video")
+            return subprocess.CompletedProcess(args, 0, "", "")
+
+        fetch.ytdlp = fake_download
+        result = fetch.fetch_instagram("https://www.instagram.com/reel/DPxyz/", self.tmp, {})
+        self.assertEqual(result["author"], "bymiilan")
+        self.assertEqual(result["title"], "3 hooks that work")
+        handle = fetch._instagram_handle
+        self.assertEqual(handle({"uploader_id": "62609148119", "uploader": "Milan"}), "Milan")
+        self.assertEqual(handle({"uploader_id": "someone"}), "someone")
+        self.assertEqual(handle({"channel": "@bymiilan", "uploader_id": "123"}), "bymiilan")
+
     def test_error_messages_are_plain(self):
         explain = self.mods["fetch"].explain
         self.assertIn("network is blocked",
