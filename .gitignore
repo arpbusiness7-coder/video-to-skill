@@ -1,0 +1,6 @@
+# Your own notes and settings stay out of anything you share or publish
+captures/
+config.json
+*cookies*.txt
+__pycache__/
+.claude/settings.local.json
