@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 scripts/setup.py)",
+      "Bash(python3 scripts/setup.py *)",
+      "Bash(python3 scripts/capture.py *)",
+      "Bash(python3 scripts/notes.py *)",
+      "Bash(python3 scripts/saved.py *)",
+      "Bash(python3 -m unittest *)",
+      "Bash(python scripts/setup.py)",
+      "Bash(python scripts/setup.py *)",
+      "Bash(python scripts/capture.py *)",
+      "Bash(python scripts/notes.py *)",
+      "Bash(python scripts/saved.py *)",
+      "Bash(python -m unittest *)",
+      "Edit(captures/**)"
+    ]
+  }
+}
