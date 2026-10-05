@@ -179,6 +179,24 @@ class Media(unittest.TestCase):
         for i in range(4):
             self.assertGreater(cell_brightness(sheet, i, 360, 640, 3), 20, f"cell {i}")
 
+    def test_works_without_ffprobe(self):
+        """The ready-made ffmpeg setup installs has no ffprobe; reading files must still work."""
+        video = make_video(self.tmp / "noprobe.mp4", 720, 1280, 7, audio=True)
+        with_probe = self.m.probe(video)
+        self.m._PROBES.clear()
+        os.environ["VTS_NO_FFPROBE"] = "1"
+        try:
+            without = self.m.probe(video)
+            frames = self.m.extract_frames(video, self.tmp / "np_frames", 2)
+            self.assertEqual(self.m.size(frames[0]["path"]), (540, 960))
+        finally:
+            del os.environ["VTS_NO_FFPROBE"]
+            self.m._PROBES.clear()
+        self.assertEqual(with_probe, without)
+        self.assertEqual(without["width"], 720)
+        self.assertTrue(without["audio"] and without["video"])
+        self.assertAlmostEqual(without["duration"], 7.0, delta=0.2)
+
     def test_long_video_budget(self):
         self.assertEqual(self.m.frame_budget(600), 24)
         self.assertEqual(self.m.frame_budget(170), 12)
