@@ -70,10 +70,28 @@ def utf8_streams() -> None:
 # Private environment
 # --------------------------------------------------------------------------
 
+def venv_bin() -> Path:
+    return VENV_DIR / ("Scripts" if platform.system() == "Windows" else "bin")
+
+
 def venv_python() -> Path:
-    if platform.system() == "Windows":
-        return VENV_DIR / "Scripts" / "python.exe"
-    return VENV_DIR / "bin" / "python"
+    return venv_bin() / ("python.exe" if platform.system() == "Windows" else "python")
+
+
+def tools_dir() -> Path:
+    """Ready-made helper programs (ffmpeg) that setup.py puts next to the
+    private environment, so nothing has to be installed system-wide."""
+    return VENV_DIR / "tools"
+
+
+def add_tools_to_path() -> None:
+    """Let this process, yt-dlp and ffmpeg calls find the private ffmpeg and
+    Deno before anything else on the computer."""
+    extra = [str(p) for p in (tools_dir(), venv_bin()) if p.is_dir()]
+    current = os.environ.get("PATH", "").split(os.pathsep)
+    missing = [p for p in extra if p not in current]
+    if missing:
+        os.environ["PATH"] = os.pathsep.join(missing + current)
 
 
 def use_private_env() -> None:
@@ -82,6 +100,7 @@ def use_private_env() -> None:
     Means callers can always type plain `python3 scripts/x.py` and still get
     yt-dlp and Whisper, without activating anything.
     """
+    add_tools_to_path()
     target = venv_python()
     ready = VENV_DIR / ".video-to-skill-ready"   # written by setup.py after a good install
     if os.environ.get("VTS_IN_VENV") or not target.exists() or not ready.exists():

@@ -7,7 +7,9 @@ frames are still kept, so any frame with small text can be opened on its own.
 """
 from __future__ import annotations
 
+import json
 import math
+import os
 import re
 import shutil
 import subprocess
@@ -33,40 +35,81 @@ def natural_key(path: Path):
 
 
 def require_ffmpeg() -> None:
-    missing = [tool for tool in ("ffmpeg", "ffprobe") if not shutil.which(tool)]
-    if missing:
+    if not shutil.which("ffmpeg"):
         raise RuntimeError(
-            f"{' and '.join(missing)} not found. Run `python3 scripts/setup.py` to see how to install it.")
+            "ffmpeg not found. Run `python3 scripts/setup.py --install`, which adds a free ready-made copy.")
 
 
 def _run(cmd: list) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, capture_output=True, text=True)
 
 
-def duration(path: Path) -> float:
-    result = _run(["ffprobe", "-v", "error", "-show_entries", "format=duration",
-                   "-of", "default=noprint_wrappers=1:nokey=1", str(path)])
+def _use_ffprobe() -> bool:
+    # ffprobe is used when the computer has it. The ready-made ffmpeg that
+    # setup.py installs comes without it, so everything also works from
+    # ffmpeg's own description of the file.
+    return bool(shutil.which("ffprobe")) and not os.environ.get("VTS_NO_FFPROBE")
+
+
+_PROBES: dict = {}
+
+
+def probe(path: Path) -> dict:
+    """{"duration", "audio", "video", "width", "height"} for a media file."""
+    path = Path(path)
     try:
-        return float(result.stdout.strip())
-    except ValueError:
-        return 0.0
+        key = (str(path), path.stat().st_mtime, path.stat().st_size)
+    except OSError:
+        return {"duration": 0.0, "audio": False, "video": False, "width": 0, "height": 0}
+    if key in _PROBES:
+        return _PROBES[key]
+    info = {"duration": 0.0, "audio": False, "video": False, "width": 0, "height": 0}
+    if _use_ffprobe():
+        result = _run(["ffprobe", "-v", "error", "-show_entries",
+                       "format=duration:stream=codec_type,width,height", "-of", "json", str(path)])
+        try:
+            data = json.loads(result.stdout or "{}")
+            info["duration"] = float((data.get("format") or {}).get("duration") or 0)
+            for stream in data.get("streams") or []:
+                if stream.get("codec_type") == "audio":
+                    info["audio"] = True
+                elif stream.get("codec_type") == "video" and not info["video"]:
+                    info.update(video=True, width=int(stream.get("width") or 0),
+                                height=int(stream.get("height") or 0))
+        except (ValueError, TypeError):
+            pass
+    else:
+        text = _run(["ffmpeg", "-hide_banner", "-i", str(path)]).stderr
+        found = re.search(r"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)", text)
+        if found:
+            h, m, sec = found.groups()
+            info["duration"] = int(h) * 3600 + int(m) * 60 + float(sec)
+        for line in text.splitlines():
+            if not re.search(r"Stream #\d+:\d+", line):
+                continue
+            if ": Audio:" in line:
+                info["audio"] = True
+            elif ": Video:" in line and not info["video"]:
+                info["video"] = True
+                dims = re.search(r"\b(\d{2,5})x(\d{2,5})\b", line.split(": Video:", 1)[1])
+                if dims:
+                    info["width"], info["height"] = int(dims.group(1)), int(dims.group(2))
+    _PROBES[key] = info
+    return info
+
+
+def duration(path: Path) -> float:
+    return probe(path)["duration"]
 
 
 def has_stream(path: Path, kind: str) -> bool:
     """kind is "a" (audio) or "v" (video)."""
-    result = _run(["ffprobe", "-v", "error", "-select_streams", kind,
-                   "-show_entries", "stream=codec_type", "-of", "csv=p=0", str(path)])
-    return bool(result.stdout.strip())
+    return probe(path)["audio" if kind == "a" else "video"]
 
 
 def size(path: Path) -> tuple[int, int]:
-    result = _run(["ffprobe", "-v", "error", "-select_streams", "v:0",
-                   "-show_entries", "stream=width,height", "-of", "csv=p=0:s=x", str(path)])
-    try:
-        width, height = result.stdout.strip().splitlines()[0].split("x")[:2]
-        return int(width), int(height)
-    except (ValueError, IndexError):
-        return 0, 0
+    info = probe(path)
+    return info["width"], info["height"]
 
 
 def extract_audio(video: Path, destination: Path) -> Path:

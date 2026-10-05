@@ -33,13 +33,32 @@ def _load_model(name: str, models_dir: str = ""):
     return _MODEL
 
 
+def _read_wav(path: Path):
+    """The 16 kHz mono WAV that media.extract_audio writes, as the float array
+    Whisper wants. Handing Whisper the samples directly means it never has to
+    decode the file itself, which depends on the PyAV library and broke when
+    PyAV 19 changed its open() call. Returns None for anything else."""
+    import wave
+    try:
+        import numpy as np
+        with wave.open(str(path), "rb") as handle:
+            if (handle.getnchannels(), handle.getsampwidth(), handle.getframerate()) != (1, 2, 16000):
+                return None
+            raw = handle.readframes(handle.getnframes())
+        return np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
+    except (wave.Error, OSError, ImportError, EOFError):
+        return None
+
+
 def whisper(audio: Path, model_name: str = "small", language: str = "",
             models_dir: str = "") -> dict:
     """Returns {"text", "language", "segments"}. Paragraph breaks go where the
     speaker paused, so long transcripts stay readable."""
     model = _load_model(model_name, models_dir)
+    samples = _read_wav(Path(audio))
     segments, info = model.transcribe(
-        str(audio), language=language or None, vad_filter=True, beam_size=5)
+        samples if samples is not None else str(audio),
+        language=language or None, vad_filter=True, beam_size=5)
     parts, kept, last_end, run = [], [], 0.0, 0
     for seg in segments:
         text = seg.text.strip()
