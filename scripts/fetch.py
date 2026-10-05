@@ -248,6 +248,21 @@ def _gallery_meta(folder: Path) -> dict:
     return {}
 
 
+def _instagram_handle(*records: dict) -> str:
+    """The account's @username. For Instagram, yt-dlp's `uploader_id` is the
+    numeric account id (e.g. 62609148119) and the username is in `channel`,
+    so take the first value that isn't just digits, then the display name."""
+    for key in ("channel", "uploader_id"):
+        for record in records:
+            value = str(record.get(key) or "").strip().lstrip("@")
+            if value and not value.isdigit():
+                return value
+    for record in records:
+        if record.get("uploader"):
+            return str(record["uploader"]).strip()
+    return ""
+
+
 def fetch_instagram(url: str, work: Path, config: dict, caption_hint: str = "") -> dict:
     permalink, code = instagram_permalink(url)
     cookies = cookies_file(config)
@@ -275,8 +290,7 @@ def fetch_instagram(url: str, work: Path, config: dict, caption_hint: str = "") 
     if info:
         first = (info.get("entries") or [info])[0] or {}
         result["caption"] = (info.get("description") or first.get("description") or "").strip()
-        result["author"] = (info.get("uploader_id") or info.get("channel") or first.get("uploader_id")
-                            or info.get("uploader") or "")
+        result["author"] = _instagram_handle(info, first)
         stamp = info.get("timestamp") or first.get("timestamp")
         if stamp:
             result["published"] = time.strftime("%Y-%m-%d", time.gmtime(stamp))
