@@ -37,16 +37,30 @@ python3 scripts/setup.py
 ```
 
 - **`ready` is true:** go to Step 1 and don't mention setup.
-- **Otherwise:** walk the user through it in plain words, one item at a time:
-  - Python packages (yt-dlp, Whisper, gallery-dl): offer to run `python3 scripts/setup.py --install` yourself. It installs into a private environment in the home folder (`~/.video-to-skill-venv`). Ask first.
-  - ffmpeg or Node.js: these are system installs. Show the `fix` command for their system and offer to run it. Ask first. On a Mac without Homebrew, point them to https://brew.sh first (one paste in Terminal).
+- **Otherwise:** say in one or two plain sentences what's missing, then offer to run `python3 scripts/setup.py --install` yourself (ask first). It fetches everything the tool needs into one private folder in the home folder (`~/.video-to-skill-venv`): its own up-to-date Python, yt-dlp, gallery-dl, Whisper, a ready-made ffmpeg, and Deno (which YouTube downloads need). It needs no Homebrew, no Terminal and no admin password, and nothing is installed system-wide. It takes a few minutes and about 1 GB.
+  - Straight after, run `python3 scripts/setup.py --prefetch` to download the speech model (about 460 MB for "small"), so it doesn't eat into the first capture.
+  - If `--install` or `--prefetch` gets cut off by a time limit, run it again. It carries on where it stopped.
+  - If `python3` itself is missing on a Mac, macOS offers to install Apple's free "command line developer tools". Tell the user to click Install, then try again.
   - If an install fails with a network or 403 error, run `python3 scripts/setup.py --net`. If sites show as blocked, tell the user their Claude network setting is blocking them. The fix is in Settings > Capabilities (network access): allow all domains, then start a new task. Stop there.
-  - The Whisper model (about 460 MB for "small") downloads on first use. Run `python3 scripts/setup.py --prefetch` straight after installing, so the download doesn't eat into a capture.
-  - If `--install` or `--prefetch` gets cut off by the time limit, run it again. It carries on where it stopped.
+  - Running `--install` again later also updates yt-dlp, which is the fix when YouTube or Instagram downloads start failing.
 - In Claude Code, the install lives in the user's home folder and stays put, so setup is one-time.
 - In the desktop app chat, the private environment may need reinstalling in a new task, because the computer-side workspace can reset. That's normal: run `--install` and `--prefetch` again. That workspace also has limited memory, so keep `whisper_model` at "small" or below there.
 
-If the user only asked to set up or check video-to-skill, stop when `ready` is true.
+### After setup (and right after the skill is installed): tell the user what this does
+
+The first time setup finishes, or when the user has just installed this skill, finish with a short welcome in plain words. Keep it to this shape, with no jargon and no command output:
+
+> **video-to-skill is ready.** It turns YouTube videos, Instagram reels and posts, and video files into short notes: what was said, plus anything shown on screen. When a video teaches a process you could repeat, it can turn that into a Claude skill (it always asks first). It's free and runs on your computer.
+>
+> **Try it by typing:**
+> - a YouTube or Instagram link, e.g. "capture this https://www.instagram.com/reel/..."
+> - "go through my Instagram saves" (I'll show you how to get them from Instagram)
+> - "what have I saved about <topic>?"
+> - "make a skill from my saved videos about <topic>"
+>
+> Your notes go in `<the real captures folder path>`. Tip: tell me what you care about ("I run a cafe") and I'll judge what's useful for that.
+
+If the user only asked to set up or check video-to-skill, stop there.
 
 ## Step 1: capture
 
@@ -128,6 +142,10 @@ Use this when the user wants to go through what they've saved over time.
 4. **At the end**, give a short roll-up: how many were done, the main themes, and the skill-worthy ones. Offer to turn any of them into skills, one at a time or combined.
 
 `saved.py status` shows progress. `saved.py retry-failed` puts failures back in the queue. Re-importing a newer export only adds new saves.
+
+## Questions about saved notes
+
+For "what have I saved about X?" or "find that reel about Y", run `python3 scripts/notes.py search <words>` (try a synonym or two). Read the best matching files in `captures/` and answer in a few lines, naming the notes and their links. For "what's skill-worthy?", run `notes.py list --skill-worthy yes`.
 
 ## A skill from several captures
 
