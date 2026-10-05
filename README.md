@@ -4,6 +4,14 @@ Turns YouTube videos, Instagram reels and posts, and video files into notes you 
 
 It's free: no accounts, no API keys, no credits.
 
+## Install: paste this into Claude Code
+
+```
+Install the video-to-skill tool from https://github.com/arpbusiness7-coder/video-to-skill. Clone it into ~/Projects/video-to-skill, copy its skill file (.claude/skills/video-to-skill/SKILL.md) into ~/.claude/skills/video-to-skill/ so it works in every project, then run its setup check.
+```
+
+Claude downloads it, adds the skill so it works in any project, and walks you through the one-time setup. Prefer to do it by hand? See "Get started" below.
+
 | Job | Tool | Cost |
 |---|---|---|
 | Download YouTube and Instagram videos | yt-dlp | free |
